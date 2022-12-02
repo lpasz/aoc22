@@ -9,15 +9,19 @@
 
 (def inp (slurp "src/day-02/inp.txt"))
 
-(defn round-points [adv you]
-  (cond ))
+(defn game-result [adv you]
+  (cond (= adv you) :tie
+        (= adv (rules you))  :win
+        (= (rules adv) you) :lose))
 
 (defn get-points [[adv you]]
-  (+ (points you) ()))
+  (+ (points you) (points (game-result adv you))))
 
 (defn parse-inp [text]
   (->> (s/split-lines text)
-       (map (fn [line] (->> line (seq) ((juxt first #(nth % 2))))))
-       (map get-points)))
+       (map (fn [line] (->> (seq line)
+                            ((juxt #(rsp-encrypt (first %))  #(rsp-encrypt (nth % 2)))))))
+       (map get-points)
+       (reduce +)))
 
 (parse-inp inp)

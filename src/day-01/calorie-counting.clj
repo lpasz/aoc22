@@ -2,11 +2,11 @@
 
 (def inp (slurp "src/day-01/inp.txt"))
 
-(defn- to-int [s] (Integer/parseInt s))
-
 (defn- elf-total-calories [text]
   (->> (s/split text #"\n\n")
-       (map #(->> (s/split-lines %) (map to-int) (apply +)))
+       (map (fn [elf] (->> (s/split-lines elf)
+                           (map #(Integer/parseInt %))
+                           (apply +))))
        (sort >)))
 
 (defn max-elf-cal [text] (->> (elf-total-calories text) (first)))

@@ -6,8 +6,9 @@
 (def inp (slurp "src/day-04/inp.txt"))
 
 (defn count-schedule-overlap [text overlap?]
-  (->> (s/split-lines text)
-       (map (fn [line] (map #(Integer/parseInt %) (s/split line #",|-"))))
+  (->> (s/split text #",|\n|-")
+       (map #(Integer/parseInt %))
+       (partition 4)
        (map (fn [[x1 x2 y1 y2]] [(into #{} (range x1 (inc x2)))
                                  (into #{} (range y1 (inc y2)))]))
        (reduce (fn [acc [range1 range2]] (if (overlap? range1 range2)

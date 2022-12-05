@@ -14,27 +14,41 @@
        (filter #(not= (first %) \space))
        (reduce (fn [acc stack]
                  (assoc acc
-                        (first stack)
-                        (filter #(not= % \space) (rest stack)))) {})))
+                        (Integer/parseInt (str (first stack)))
+                        (->> stack
+                             rest
+                             reverse
+                             (filter #(not= % \space)))))
+               (sorted-map))))
 
 (defn parse-moves [moves]
   (->> (s/split moves #"[^0-9]")
        (filter not-empty)
+       (map #(Integer/parseInt %))
        (partition 3)))
 
-(defn parse-input [[stacks moves]]
-  [(parse-stacks stacks)
-   (parse-moves moves)])
+(defn parse-input [[stacks moves]] [(parse-stacks stacks) (parse-moves moves)])
 
-(defn do-calc [[stacks moves]]
-  (reduce (fn [stacks [quant from to]]
-            (-> stacks
-                (assoc from (drop quant (stacks from)))
-                (assoc to  (concat (take quant (stacks from)) (stacks to))))) stacks moves))
+(defn move-n-stacks-from-to-with [stacks [quant from to] mover]
+  (-> stacks
+      (update from #(drop quant %))
+      (update to #(concat (mover quant (stacks from)) %))))
 
-(defn ex1 [text]
+(defn do-calc [mover [stacks moves]]
+  (reduce #(move-n-stacks-from-to-with %1 %2 mover) stacks moves))
+
+(defn calc [text mover]
   (->> (s/split text #"\n\n")
        (parse-input)
-       (do-calc)))
+       (do-calc mover)
+       (vals)
+       (map first)
+       (apply str)))
 
-(ex1 ex-inp)
+(defn ex1 [text] (calc text #(reverse (take %1 %2))))
+(defn ex2 [text] (calc text take))
+
+(ex1 ex-inp) ;; "CMZ"
+(ex1 inp) ;; "PSNRGBTFT"
+(ex2 ex-inp) ;; "MCD"
+(ex2 inp) ;; "BNTZFPMMW"

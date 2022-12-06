@@ -14,16 +14,15 @@
 
 (defn ex2 [text] (first-distinct-seq 14 text))
 
-(ex1 "mjqjpqmgbljsphdztnvjfqwrcgsmlb") ;; 7
-(ex1 "bvwbjplbgvbhsrlpgdmjqwftvncz") ;; 5
-(ex1 "nppdvjthqldpwncqszvftbrmjlhg") ;; 6
+(ex1 "mjqjpqmgbljsphdztnvjfqwrcgsmlb")    ;; 7
+(ex2 "mjqjpqmgbljsphdztnvjfqwrcgsmlb")    ;; 19
+(ex1 "bvwbjplbgvbhsrlpgdmjqwftvncz")      ;; 5
+(ex2 "bvwbjplbgvbhsrlpgdmjqwftvncz")      ;; 23
+(ex1 "nppdvjthqldpwncqszvftbrmjlhg")      ;; 6
+(ex2 "nppdvjthqldpwncqszvftbrmjlhg")      ;; 23
 (ex1 "nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg") ;; 10
-(ex1 "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw") ;; 11
-(ex1 inp) ;; 1538
-
-(ex2 "mjqjpqmgbljsphdztnvjfqwrcgsmlb") ;; 19
-(ex2 "bvwbjplbgvbhsrlpgdmjqwftvncz") ;; 23
-(ex2 "nppdvjthqldpwncqszvftbrmjlhg") ;; 23
 (ex2 "nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg") ;; 29
-(ex2 "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw") ;; 26
-(ex2 inp) ;; 2315
+(ex1 "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw")  ;; 11
+(ex2 "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw")  ;; 26
+(ex1 inp)                                 ;; 1538
+(ex2 inp)                                 ;; 2315

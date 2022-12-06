@@ -1,17 +1,14 @@
-(ns aoc22.day-06.tuning-trouble
-  (:require [clojure.string :as s]))
-
-(def inp (slurp "src/day-06/inp.txt"))
+(ns aoc22.day-06.tuning-trouble)
 
 (defn first-distinct-seq [n coll]
   (->> (partition n 1 coll)
-       (keep-indexed (fn [idx itm] (if (= n (count (set itm))) 
-                                     idx)))
+       (keep-indexed #(when (= n (count (set %2)))
+                        %1))
        (first)
        (+ n)))
 
+(def inp (slurp "src/day-06/inp.txt"))
 (defn ex1 [text] (first-distinct-seq 4 text))
-
 (defn ex2 [text] (first-distinct-seq 14 text))
 
 (ex1 "mjqjpqmgbljsphdztnvjfqwrcgsmlb")    ;; 7

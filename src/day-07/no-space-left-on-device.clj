@@ -57,10 +57,10 @@
          (sort)
          (first))))
 
-(ex1 ex-inp)
-(ex1 inp)
-(ex2 ex-inp)
-(ex2 inp)
+(ex1 ex-inp)  ;; 95437
+(ex1 inp)     ;; 1306611
+(ex2 ex-inp)  ;; 24933642
+(ex2 inp)     ;; 13210366
 
 
 

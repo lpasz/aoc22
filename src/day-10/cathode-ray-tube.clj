@@ -31,11 +31,15 @@
 (defn bit-on? [cycle reg]
   (#{reg (+ 1 reg) (+ 2 reg)} (rem cycle 40)))
 
+(defn p [text] (do (print text) text))
+
 (defn ex2 [text]
   (->> (parse-inp text)
-       (map (fn [[cycle reg]] (if (bit-on? cycle reg) \# \.)))
+       (map (fn [[cycle reg]] (if (bit-on? cycle reg) \# \space)))
        (partition 40)
-       (map #(apply str %))))
+       (map #(apply str %))
+       (s/join "\n")
+       (p)))
 
 (ex1 ex-inp) ;; 13140
 (ex1 inp)    ;; 13440

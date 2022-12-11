@@ -4,7 +4,7 @@
 (def inp (slurp "src/day-11/inp.txt"))
 (def ex-inp (slurp "src/day-11/ex-inp.txt"))
 
-(defn to-int [i] (bigdec i))
+(defn to-int [i] (Integer/parseInt i))
 
 (defn parse-monkey-number [monkey-number]
   (Integer/parseInt (s/replace monkey-number #"[^0-9]" "")))
@@ -12,11 +12,8 @@
 (defn parse-starting-items [starting-items]
   (->> (s/split (last (s/split starting-items #": ")) #", ")
        (map to-int)
-       (into [])))
-
-(parse-starting-items "  Starting items: 79, 98")
-
-(map to-int (s/split (last (s/split "  Starting items: 79, 98" #": ")) #", "))
+       (into [])
+       (new java.util.ArrayList)))
 
 (defn parse-operation [operation]
   (-> (str "(fn [old] ("
@@ -29,63 +26,48 @@
   (let [tests (-> (apply str test) (s/replace #"[^0-9]+" ",") (s/split #","))
         [divisible-for m1 m2] (->> tests (drop 1) (map to-int))]
     {:test #(if (zero? (rem % divisible-for)) m1 m2)
-     :divisible-for divisible-for
-     true m1
-     false m2}))
+     :divisible-for divisible-for}))
 
 (defn parse-line [line]
   (let [[monkey-number starting-items operation & test] (s/split-lines line)]
-    [(parse-monkey-number monkey-number)
-     (merge {:items (parse-starting-items starting-items)
-             :operation (parse-operation operation)}
-            (parse-test test))]))
+    (merge {:items (parse-starting-items starting-items)
+            :operation (parse-operation operation)
+            :inspected (volatile! 0)}
+           (parse-test test))))
 
 (defn parse-inp [text]
   (->> (s/split text #"\n\n")
        (map parse-line)
-       (into (sorted-map))))
+       (into [])))
 
-(defn mturn [monkeys relief]
-  (reduce (fn [smonkeys monkey-num]
-            (->> (get-in smonkeys [monkey-num :items])
-                 (reduce (fn [rmonkeys P-item]
-                           (let [worry-lvl ((get-in smonkeys [monkey-num :operation]) P-item)
-                                 worry-lvl (quot worry-lvl relief)
-                                 next-monkey  ((get-in smonkeys [monkey-num :test]) worry-lvl)]
-                             (-> rmonkeys
-                                 (update-in [monkey-num :inspected] #(if (nil? %) 1 (inc %)))
-                                 (update-in [monkey-num :items] #(drop 1 %))
-                                 (update-in [next-monkey :items] #(concat % [worry-lvl])))))
-                         smonkeys)))
-          monkeys
-          (keys monkeys)))
+(defn inspect-worry-throw [{:keys [items operation test inspected]} monkeys relief denominator]
+  (do (vswap! inspected + (count items))
+      (doseq [item items]
+        (let [worry-lvl (operation item)
+              worry-lvl (quot worry-lvl relief)
+              worry-lvl (rem worry-lvl denominator)
+              next-monkey-items (:items (monkeys (test worry-lvl)))]
+          (. next-monkey-items add worry-lvl)))
+      (. items clear)))
 
-(defn monkey-turn [text turns relief]
+(defn do-turns [text turns relief]
   (let [monkeys (parse-inp text)
-        denominator (->> monkeys
-                         (map #(:divisible-for (second %)))
-                         (reduce *))]
-    (->> (loop [n 0
-                monkeys monkeys]
-           (if (= n turns)
-             monkeys
-             (recur (inc n)
-                    (mturn monkeys relief))))
-         (map (fn [[n m]] (get m :inspected)))
+        denominator (->> monkeys (map :divisible-for) (reduce *))]
+    (dotimes [_ turns]
+      (doseq [monkey monkeys]
+        (inspect-worry-throw monkey monkeys relief denominator)))
+    (->> monkeys
+         (map #(deref (:inspected %)))
          (sort >)
          (take 2)
          (apply *))))
 
-(defn ex1 [text]
-  (monkey-turn text 20 3))
+(defn ex1 [text] (do-turns text 20 3))
+(defn ex2 [text] (do-turns text 10000 1))
 
-(defn ex2
-  ([text n]  (monkey-turn text n 1))
-  ([text]  (monkey-turn text 10000 1)))
-
-(new java.utils.ArrayList (parse-inp ex-inp))
-
-(ex1 inp)    ;; 55458
 (ex1 ex-inp) ;; 10605
+(ex2 ex-inp) ;; 2713310158
+(ex1 inp)    ;; 55458
+(ex2 inp)    ;; 14508081294
 
-(ex2 inp 500)
+(inc (volatile! 0))

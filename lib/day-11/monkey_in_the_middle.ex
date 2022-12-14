@@ -9,7 +9,7 @@ defmodule MonkeyInTheMiddle do
   defp parse_block(block) do
     block
     |> String.split("\n")
-    |> Enum.reduce({nil, %{throws: 1}}, &parse_block_line/2)
+    |> Enum.reduce({nil, %{throws: 0}}, &parse_block_line/2)
   end
 
   defp parse_block_line(line, {idx, acc}) do
@@ -40,38 +40,69 @@ defmodule MonkeyInTheMiddle do
     end
   end
 
+  def monkeys_turn(monkeys, rounds, calm_with) do
+    Enum.reduce(1..rounds, monkeys, fn _round, monkeys ->
+      Enum.reduce(monkeys, monkeys, fn {trowing_monkey, _old_monkey}, monkeys ->
+        monkey = monkeys[trowing_monkey]
+
+        monkey.items
+        |> Enum.reduce(monkeys, fn item, monkeys ->
+          worry_lvl = monkey.operation.(item)
+          worry_lvl_calmed = calm_with.(worry_lvl)
+          divisible? = rem(worry_lvl_calmed, monkey.div) == 0
+          throw_to = monkey[divisible?]
+
+          update_in(monkeys, [throw_to, :items], &[worry_lvl_calmed | &1])
+        end)
+        |> update_in([trowing_monkey, :throws], &(&1 + length(monkey.items)))
+        |> put_in([trowing_monkey, :items], [])
+      end)
+    end)
+    |> Enum.map(fn {_k, v} -> v.throws end)
+    |> Enum.sort(&>/2)
+    |> Enum.take(2)
+    |> Enum.reduce(1, &*/2)
+  end
+
   def ex1(monkeys) do
+    monkeys_turn(monkeys, 20, &div(&1,3))
+  end
+
+  def ex2(monkeys) do
     scd =
       monkeys
       |> Enum.map(fn {_, %{div: div}} -> div end)
       |> Enum.reduce(1, &*/2)
 
-    Enum.reduce(0..20, monkeys, fn _, monkeys ->
-      Enum.reduce(monkeys, monkeys, fn {trowing_monkey, monkey}, monkeys ->
-        monkey.items
-        |> Enum.reduce(monkeys, fn item, monkeys ->
-          worry_lvl = monkey.operation.(item)
-          worry_lvl_calmed = div(worry_lvl, 3)
-          # worry_lvl_after = rem(worry_lvl_calmed, scd)
-          divisible? = rem(worry_lvl_calmed, monkey.div) == 0
-          trow_to_monkey = monkey[divisible?]
-
-          monkeys
-          |> update_in([trow_to_monkey, :items], &[worry_lvl | &1])
-          |> update_in([trowing_monkey, :items], &tl/1)
-          |> update_in([trowing_monkey, :throws], & &1 + 1)
-        end)
-      end)
-    end)
+    monkeys_turn(monkeys, 10000, &rem(&1,scd))
   end
 end
 
 ex_inp = File.read!("./lib/day-11/ex-inp.txt")
 inp = File.read!("./lib/day-11/inp.txt")
 
+
+
+# 10605
 ex_inp
 |> MonkeyInTheMiddle.parse_input()
 |> MonkeyInTheMiddle.ex1()
 |> IO.inspect()
 
-# inp |> MonkeyInTheMiddle.parse_input() |> IO.inspect()
+# 55458
+inp
+|> MonkeyInTheMiddle.parse_input()
+|> MonkeyInTheMiddle.ex1()
+|> IO.inspect()
+
+# 2713310158
+ex_inp
+|> MonkeyInTheMiddle.parse_input()
+|> MonkeyInTheMiddle.ex2()
+|> IO.inspect()
+
+# 14508081294
+inp
+|> MonkeyInTheMiddle.parse_input()
+|> MonkeyInTheMiddle.ex2()
+|> IO.inspect()

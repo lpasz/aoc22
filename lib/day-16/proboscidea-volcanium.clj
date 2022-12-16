@@ -1,6 +1,10 @@
 (ns aoc22.day-16.proboscidea-volcanium
   (:require [clojure.string :as s]))
 
+(defn insp [n]
+  (clojure.pprint/pprint n)
+  n)
+
 (def inp (slurp "lib/day-16/inp.txt"))
 (def ex-inp (slurp "lib/day-16/ex-inp.txt"))
 
@@ -9,93 +13,88 @@
        (mapcat #(s/split % #"(Valve | has flow rate=|; tunnels lead to valves |; tunnel leads to valve )"))
        (filter not-empty)
        (partition 3)
-       (map (fn [[valve flow-rate points-to]] [valve {:valve valve
-                                                      valve (s/split points-to #", ")
-                                                      :flow-rate (Integer/parseInt flow-rate)
-                                                      :points-to (s/split points-to #", ")}]))
+       (map (fn [[valve flow-rate tunnels-to]] [(keyword valve) {:valve (keyword valve)
+                                                                 :flow-rate (Integer/parseInt flow-rate)
+                                                                 :tunnels-to (map keyword (s/split tunnels-to #", "))}]))
        (into (sorted-map))))
 
-(defn insp [x]
-  (clojure.pprint/pprint x)
-  x)
-
-(defn next-valves [current valves curr-time curr-open visited]
-  (->> (:points-to (valves current))
-       (map valves)
-       (filter #(not (visited (:valve %))))
-       (mapcat (fn [{:keys [valve flow-rate]}]
-                 (cond
-                   (zero? flow-rate) [[(inc curr-time) valve curr-open (conj visited valve)]]
-                   (curr-open valve) [[(inc curr-time) valve curr-open (conj visited valve)]]
-                   :else [;; move and open the valve
-                          [(+ curr-time 2) valve (conj curr-open valve) (conj visited valve)]
-                          ;; not open the valve, just move
-                          ;;[(inc curr-time) valve curr-open]
-                          ])))
-       (reduce (fn [[times-up keep-going] [time valve open visited]]
-                 (if (= time 30)
-                   [(conj times-up open) keep-going]
-                   [times-up (conj keep-going [time valve open visited])]))
-               [[] []])))
+(defn next-valves [[curr-time current-valve curr-open curr-visited curr-pressure] valves]
+  (->>  (valves current-valve)
+        :tunnels-to
+        (map valves)
+        (mapcat (fn [{:keys [valve flow-rate]}]
+                  (cond
+                    (zero? flow-rate) [[(dec curr-time)
+                                        valve
+                                        curr-open
+                                        (conj curr-visited valve)
+                                        curr-pressure]]
+                    (curr-open valve) [[(dec curr-time)
+                                        valve
+                                        curr-open
+                                        (conj curr-visited valve)
+                                        curr-pressure]]
+                    :else [;; go to valve and open it
+                           [(- curr-time 2)
+                            valve
+                            (conj curr-open valve)
+                            (conj curr-visited valve)
+                            (+ flow-rate curr-pressure)]
+                          ;; go to valve
+                           [(dec curr-time)
+                            valve
+                            curr-open
+                            (conj curr-visited valve)
+                            curr-pressure]])))
+        (filter (fn [[time]] (> time 0)))))
 
 (def evalves (parse-inp ex-inp))
 
-(reduce (fn [acc [k {:keys [flow-rate]}]]
-          (+ acc flow-rate)) 0 evalves)
+(next-valves [30 :AA #{} #{} 0] evalves)
 
-(next-valves "AA" evalves 0 #{} #{})
+(defn shortest-path [valves start]
+  (loop [stack #{[30 start #{} #{} 0]}
+         max-pressure 0]
+    (let [current (first stack)
+          time (first current)
+          pressure (peek current)]
+      (cond (empty? stack) max-pressure
+            (zero? time) (recur (disj stack current)
+                                (max max-pressure pressure))
+            :else (recur (into #{} (concat (disj stack current)
+                                           (next-valves current valves)))
+                         max-pressure)))))
 
-(defn shortest-path [valves start time]
-  (loop [stack [[time start #{} #{}]]
-         open []]
-    (if (empty? stack)
-      open
-      (let [[time valve open-valves visited] (first stack)
-            stack (rest stack)
-            [times-up keep-going] (next-valves valve valves time open-valves visited)
-            stack (if (not-empty keep-going) (concat stack keep-going) stack)
-            paths-to-end (cond (not-empty times-up) (conj open times-up)
-                               (empty keep-going) (conj open open-valves)
-                               :else open)]
-        (recur stack paths-to-end)))))
+(shortest-path evalves :AA)
 
-(let [valves-flow-rate (into {} (map (fn [[k v]] [k (:flow-rate v)]) evalves))]
-  (->> (shortest-path evalves "AA" 0)
-       (map (fn [xs] (reduce (fn [acc x] (+ acc (valves-flow-rate x))) 0 xs)))
-       (sort >)))
+;;0     2*     3    4*     6     7    8*    10    11    12    13    14    15    16*   18    19    20*   22    23*  (all valves that can be open are open after this point)
+;;AA -> DD -> CC -> BB -> AA -> II -> JJ -> II -> AA -> DD -> EE -> FF -> GG -> HH -> GG -> FF -> EE -> DD -> CC
 
-;;   (clojure.pprint/pprint {:valves valves})
-;;   (loop [{:keys [valve flow-rate points-to] :as vvalve} (valves "AA")
-;;          valves valves
-;;          open #{}
-;;          visited #{}
-;;          minutes 30]
-;;     (clojure.pprint/pprint {:vvalve vvalve
-;;                             :visited visited
-;;                             :open open
-;;                             :minutes minutes})
-;;     (cond
-;;       ;; time's up
-;;       (zero? minutes)
-;;       open
-
-;;       ;; move along to next node
-;;       (or (open valve) (zero? flow-rate))
-;;       (let [next-valve (next-valve points-to valves visited)
-;;             next-valve (valves next-valve)]
-;;         (recur next-valve
-;;                valves
-;;                open
-;;                (conj visited valve)
-;;                (dec minutes)))
-
-;;       ;; open current node
-;;       (pos? flow-rate)
-;;       (recur vvalve
-;;              valves
-;;              (conj open valve)
-;;              visited
-;;              (dec minutes)))))
+;;AA  <-+           <-+
+;;|    |             |
+;;II  BB <-> CC <-> DD <-> EE <-> FF <-> GG <-> HH
+;;|
+;;JJ
 
 
+;;Valve AA has flow rate=0; tunnels lead to valves DD, II, BB
+;;Valve BB has flow rate=13; tunnels lead to valves CC, AA
+;;Valve CC has flow rate=2; tunnels lead to valves DD, BB
+;;Valve DD has flow rate=20; tunnels lead to valves CC, AA, EE
+;;Valve EE has flow rate=3; tunnels lead to valves FF, DD
+;;Valve FF has flow rate=0; tunnels lead to valves EE, GG
+;;Valve GG has flow rate=0; tunnels lead to valves FF, HH
+;;Valve HH has flow rate=22; tunnel leads to valve GG
+;;Valve II has flow rate=0; tunnels lead to valves AA, JJ
+;;Valve JJ has flow rate=21; tunnel leads to valve II
 
+
+;;+------------------------+
+;;|                        |
+;;AA<---------+            |
+;;|          |             |
+;;II        BB <-> CC <-> DD <-> EE <-> FF <-> GG <-> HH <-> 22
+;;|         |      |      |      |
+;;JJ        13     2     20      3
+;;|
+;;21

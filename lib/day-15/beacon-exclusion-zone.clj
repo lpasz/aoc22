@@ -1,70 +1,90 @@
 (ns aoc22.day-15.beacon-exclusion-zone
-  (:require [clojure.string :as s]
-            [clojure.parallel :as p]))
+  (:require [clojure.string :as s]))
 
 (def inp (slurp "lib/day-15/inp.txt"))
 (def ex-inp (slurp "lib/day-15/ex-inp.txt"))
-
-(defn where-is-not-fn [[sx sy] [bx by]]
-  (let [x-diff (abs (- sx bx))
-        y-diff (abs (- sy by))]
-    (fn [[tx ty]]
-      (> (+ x-diff y-diff 1) (+ (abs (- sx tx)) (abs (- sy ty)))))))
-
-(defn where-is-not [sb]
-  (->> (partition 2 sb)
-       (reduce (fn [acc [s-pos b-pos]]
-                 (conj acc (where-is-not-fn s-pos b-pos))) [])))
 
 (defn parse-inp [text]
   (->> (s/split-lines text)
        (mapcat #(s/split % #"(Sensor at x=|, y=|: closest beacon is at x=|, y=)"))
        (filter not-empty)
        (map #(Integer/parseInt %))
-       (partition 2)))
+       (partition 4)))
 
-(def funn ((->> (parse-inp ex-inp) where-is-not) [8 7]))
+(defn manhattan  [x1 y1 x2 y2]
+  (+ (abs (- x1 x2)) (abs (- y1 y2))))
 
-(defn ex1 [text y]
+(defn find-radius [[sx sy bx by]]
+  [[sx sy] (manhattan sx sy bx by)])
+
+;; does the scan radius cross row?
+(defn sensor-overlap-with-row? [diff] (pos? diff))
+
+;;    2101234567890123456789012345
+;; -2 ..........#.................
+;; -1 .........###................
+;; +0 ....S...#####...............
+;; +1 .......#######........S.....
+;; +2 ......#########S............
+;; +3 .....###########SB..........
+;; +4 ....#############...........
+;; +5 ...###############..........
+;; +6 ..#################.........
+;; +7 .#########S#######S#........
+;; +8 ..#################.........
+;; +9 ...###############..........
+;; 10 ....B############...........  in line 10 sensor [8 7] has and overlap from x 2 to 14 givin it an overlap of 6 
+;; 11 ..S..###########............  occuping [(- 8 6) (+ 8 6)] = [2 14]
+;; 12 ......#########.............
+;; 13 .......#######.............. in line 13 sensor [8 7] has and overlap from x 5 to 10 givin it an overlap of 3
+;; 14 ........#####.S.......S..... occuping [(- 8 3) (+ 8 3)] = [5 11]
+;; 15 B........###................
+;; 16 ..........#SB...............
+
+(defn sensor-scan-range-in-row [ranges [[sx sy] radius] row]
+  (let [overlap-in-row (- radius (abs (- row sy)))]
+    (if (sensor-overlap-with-row? overlap-in-row)
+      (conj ranges [(- sx overlap-in-row) (+ sx overlap-in-row)])
+      ranges)))
+
+(defn sensors-scan-ranges-in-row [sensors row]
+  (->> sensors
+       (reduce #(sensor-scan-range-in-row %1 %2 row)  [])
+       (sort)
+       (vec)))
+
+(defn not-covered-by-scanners [ranges]
+  (let [[[start1 end1] [start2 end2]] (take 2 ranges)
+        rest-ranges (drop 2 ranges)]
+    (cond
+      (<= 2 (- start2 end1)) (inc end1)
+      (not-empty rest-ranges) (recur (conj rest-ranges [(min start1 end1 start2 end2)
+                                                        (max start1 end1 start2 end2)])))))
+
+(defn ppeek [coll] (peek (peek coll)))
+
+(defn ex1 [text row]
   (let [sensors-and-beacons (parse-inp text)
-        beacons (->> sensors-and-beacons (partition 2) (map second) (into #{}))
-        wnots (where-is-not sensors-and-beacons)
-        max-x (->> sensors-and-beacons (map first) (apply max) (+ y))
-        min-x (->> sensors-and-beacons (map first) (apply min) (+ (- y)))]
-    (->> (range min-x (inc max-x))
-         (keep (fn [x] (if (not (beacons [x y]))
-                         (some (fn [wnot] (wnot [x y])) wnots))))
-         (count))))
+        sensors-and-radius (map find-radius sensors-and-beacons)
+        scanned (sensors-scan-ranges-in-row sensors-and-radius row)
+        start-of-continuous-range (ffirst scanned)
+        end-of-continuous-range (ppeek scanned)]
+    (- end-of-continuous-range
+       start-of-continuous-range)))
+
+
+(defn ex2 [text max-val]
+  (let [sensors-and-beacons (parse-inp text)
+        sensors-and-radius (map find-radius sensors-and-beacons)]
+    (loop [y max-val]
+      (let [edges (sensors-scan-ranges-in-row sensors-and-radius y)
+            x   (not-covered-by-scanners edges)]
+        (if x
+          (+ (* 4000000 x) y)
+          (recur (dec y)))))))
+
 
 (ex1 ex-inp 10) ;; 26
-;; too slow
-;; (ex1 inp 2000000) ;; 5525847
-
-;; (defn ex2 [text [min-x max-x] [min-y max-y]]
-;;   (let [sensors-and-beacons (parse-inp text)
-;;         wnots (where-is-not sensors-and-beacons)]
-;;     (->> (range min-x (inc max-x))
-;;          (filter (fn [x]
-;;                    (->> (range min-y (inc max-y))
-;;                         (filter (fn [y]
-;;                                   (->> wnots
-;;                                        (some (fn [wnot]
-;;                                                (wnot [x y]))))))
-;;                         (not-empty)))))))
-
-
-
-
-(defn ex2 [text [mnx mxx] [mny mxy]]
-  (let [rg (for [x (range mnx (inc mxx)) y (range mny (inc mxy))] [x y])
-        sensors-and-beacons (parse-inp text)
-        wnots (where-is-not sensors-and-beacons)]
-    (->>  rg
-          (filter (fn [pos] 
-                    (every? (fn [wnot] (false? (wnot pos))) wnots)))
-          (first))))
-
-(ex2 ex-inp [0 20] [0 20])
-(ex2 inp [0 4000000] [1 10])
-
-(s/split-lines ex-inp)
+(ex1 inp 2000000) ;; 5525847
+(ex2 ex-inp 20) ;; 56000011
+(ex2 inp 4000000) ;; 13340867187704

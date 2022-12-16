@@ -13,10 +13,14 @@
        (mapcat #(s/split % #"(Valve | has flow rate=|; tunnels lead to valves |; tunnel leads to valve )"))
        (filter not-empty)
        (partition 3)
-       (map (fn [[valve flow-rate tunnels-to]] [(keyword valve) {:valve (keyword valve)
-                                                                 :flow-rate (Integer/parseInt flow-rate)
-                                                                 :tunnels-to (map keyword (s/split tunnels-to #", "))}]))
+       (mapcat (fn [[valve flow-rate tunnels-to]]
+                 (if (= flow-rate "0")
+                   [[(keyword valve) {:flow-rate (Integer/parseInt flow-rate) :tunnels-to (map keyword (s/split tunnels-to #", "))}]]
+                   [[(keyword valve) {:flow-rate 0 :tunnels-to (conj (map keyword (s/split tunnels-to #", ")) (keyword (s/lower-case valve)))}]
+                    [(keyword (s/lower-case valve)) {:flow-rate (Integer/parseInt flow-rate) :tunnels-to (keyword valve)}]])))
        (into (sorted-map))))
+
+(def evalves (parse-inp ex-inp))
 
 (defn next-valves [[curr-time current-valve curr-open curr-visited curr-pressure] valves]
   (->>  (valves current-valve)
@@ -47,8 +51,6 @@
                             (conj curr-visited valve)
                             curr-pressure]])))
         (filter (fn [[time]] (> time 0)))))
-
-(def evalves (parse-inp ex-inp))
 
 (next-valves [30 :AA #{} #{} 0] evalves)
 

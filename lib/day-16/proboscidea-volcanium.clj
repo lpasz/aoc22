@@ -15,59 +15,15 @@
        (partition 3)
        (mapcat (fn [[valve flow-rate tunnels-to]]
                  (if (= flow-rate "0")
-                   [[(keyword valve) {:flow-rate (Integer/parseInt flow-rate) :tunnels-to (map keyword (s/split tunnels-to #", "))}]]
-                   [[(keyword valve) {:flow-rate 0 :tunnels-to (conj (map keyword (s/split tunnels-to #", ")) (keyword (s/lower-case valve)))}]
-                    [(keyword (s/lower-case valve)) {:flow-rate (Integer/parseInt flow-rate) :tunnels-to (keyword valve)}]])))
+                   [[(keyword valve) {:flow-rate (Integer/parseInt flow-rate)
+                                      :tunnels-to (mapv keyword (s/split tunnels-to #", "))}]]
+                   [[(keyword valve) {:flow-rate 0
+                                      :tunnels-to (conj (mapv keyword (s/split tunnels-to #", ")) (keyword (s/lower-case valve)))}]
+                    [(keyword (s/lower-case valve)) {:flow-rate (Integer/parseInt flow-rate)
+                                                     :tunnels-to [(keyword valve)]}]])))
        (into (sorted-map))))
 
 (def evalves (parse-inp ex-inp))
-
-(defn next-valves [[curr-time current-valve curr-open curr-visited curr-pressure] valves]
-  (->>  (valves current-valve)
-        :tunnels-to
-        (map valves)
-        (mapcat (fn [{:keys [valve flow-rate]}]
-                  (cond
-                    (zero? flow-rate) [[(dec curr-time)
-                                        valve
-                                        curr-open
-                                        (conj curr-visited valve)
-                                        curr-pressure]]
-                    (curr-open valve) [[(dec curr-time)
-                                        valve
-                                        curr-open
-                                        (conj curr-visited valve)
-                                        curr-pressure]]
-                    :else [;; go to valve and open it
-                           [(- curr-time 2)
-                            valve
-                            (conj curr-open valve)
-                            (conj curr-visited valve)
-                            (+ flow-rate curr-pressure)]
-                          ;; go to valve
-                           [(dec curr-time)
-                            valve
-                            curr-open
-                            (conj curr-visited valve)
-                            curr-pressure]])))
-        (filter (fn [[time]] (> time 0)))))
-
-(next-valves [30 :AA #{} #{} 0] evalves)
-
-(defn shortest-path [valves start]
-  (loop [stack #{[30 start #{} #{} 0]}
-         max-pressure 0]
-    (let [current (first stack)
-          time (first current)
-          pressure (peek current)]
-      (cond (empty? stack) max-pressure
-            (zero? time) (recur (disj stack current)
-                                (max max-pressure pressure))
-            :else (recur (into #{} (concat (disj stack current)
-                                           (next-valves current valves)))
-                         max-pressure)))))
-
-(shortest-path evalves :AA)
 
 ;;0     2*     3    4*     6     7    8*    10    11    12    13    14    15    16*   18    19    20*   22    23*  (all valves that can be open are open after this point)
 ;;AA -> DD -> CC -> BB -> AA -> II -> JJ -> II -> AA -> DD -> EE -> FF -> GG -> HH -> GG -> FF -> EE -> DD -> CC
@@ -100,3 +56,76 @@
 ;;JJ        13     2     20      3
 ;;|
 ;;21
+
+
+(defn shortest-path  [graph start end]
+  (loop [stack [[0 start]]
+         prev-visited #{}
+         min-dist 10000000]
+    (let [[dist curr-pos] (first stack)
+          rstack (rest stack)]
+      (cond
+        (empty? stack) min-dist
+        (= curr-pos end) (recur rstack prev-visited (min dist min-dist))
+        :else (let [upstack (if (and (< dist min-dist) (not (prev-visited curr-pos)))
+                              (->> graph
+                                   (curr-pos)
+                                   (:tunnels-to)
+                                   (map (fn [t] [(inc dist) t]))
+                                   (concat rstack))
+                              rstack)]
+                (recur upstack (conj prev-visited curr-pos) min-dist))))))
+
+(shortest-path evalves :AA :bb)
+
+(defn interest-point [graph]
+  (keep (fn [[k v]] (if (> (:flow-rate v) 0)
+                      k)) graph))
+
+(interest-point evalves)
+
+(defn presure-released [open graph]
+  (reduce (fn [acc [started valve]]
+            (+ acc (* started (:flow-rate (valve graph)))))
+          0 open))
+
+(presure-released #{[1 :bb]} evalves)
+
+(defn from-key-to-key [start graph]
+  (let [ip (interest-point graph)
+        ipa (conj ip start)]
+    (into {} (for [from ipa to ipa :when (not= from to)]
+               [[from to] (shortest-path graph from to)]))))
+
+(defn most-steam [graph start-at timer]
+  (let [ip (interest-point graph)
+        from-to (from-key-to-key start-at graph)]
+    (loop [stack [[(dec timer) start-at #{} 0]]
+           max-pressure-release 0]
+      (let [[time-rem curr-pos vist pressure] (first stack)
+            rstack (rest stack)
+            vist (conj vist curr-pos)
+            next-poss (filter #(not (vist %1)) ip)]
+        (cond
+          (empty? stack) max-pressure-release
+          (zero? time-rem) (recur rstack (max max-pressure-release pressure))
+          (empty? next-poss) (recur rstack (max max-pressure-release pressure))
+          :else (let [upstack (->> next-poss
+                                   (pmap (fn [next-pos]
+                                           (let [time-to-next (from-to [curr-pos next-pos])
+                                                 time-rem (- (+ 1 time-rem) time-to-next)]
+                                             (if (neg? time-rem)
+                                               [0 curr-pos vist pressure]
+                                               [time-rem
+                                                next-pos
+                                                vist
+                                                (+ pressure (* time-rem (:flow-rate (next-pos graph))))]))))
+                                   (filter #(< max-pressure-release (peek %)))
+                                   (concat rstack))]
+                  (recur upstack max-pressure-release)))))))
+
+(def evalves (parse-inp ex-inp))
+(def evalves (parse-inp inp))
+
+(time (most-steam (parse-inp ex-inp) :AA 30)) ;; 1651
+(time (most-steam (parse-inp inp) :AA 30)) ;; 1595

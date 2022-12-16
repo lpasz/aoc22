@@ -41,6 +41,10 @@
 ;; 15 B........###................
 ;; 16 ..........#SB...............
 
+;;;; PRECALCULAR MAPA PARA CADADA LINHA PODE FAZER FICAR MAIS RAPIDO
+;; APENAS LINHAS QUE ELE TOCA
+
+
 (defn sensor-scan-range-in-row [ranges [[sx sy] radius] row]
   (let [overlap-in-row (- radius (abs (- row sy)))]
     (if (sensor-overlap-with-row? overlap-in-row)

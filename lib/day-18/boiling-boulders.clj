@@ -1,22 +1,20 @@
 (ns aoc22.day-18.boiling-boulders
   (:require [clojure.string :as s]
             [clojure.core.reducers :as r]
-            [clojure.pprint :as pp]))
+            [clojure.pprint :as pp]
+            [clojure.set :as set]))
 
 (def ex-inp (slurp "lib/day-18/ex-inp.txt"))
 (def inp (slurp "lib/day-18/inp.txt"))
 
-
 (defn parse-inp [text]
   (->> (s/split-lines text)
-       (map (fn [line] (->> (s/split line #",")
-                            (map #(Integer/parseInt %1)))))))
+       (mapv (fn [line] (->> (s/split line #",")
+                             (mapv #(Integer/parseInt %1)))))
+       (into #{})))
 
-
-(def ex-lava-cubes (parse-inp ex-inp))
-(def lava-cubes (parse-inp inp))
-
-(- (* 6 (count lava-cubes)) 14)
+(def ex-cubes (parse-inp ex-inp))
+(def cubes (parse-inp inp))
 
 (defn count-sides-touching [cubes]
   (->> (for [cube cubes
@@ -34,12 +32,10 @@
 
 
 ;; Part 1 
-(unconnected-sides ex-lava-cubes) ;; 64
-(unconnected-sides lava-cubes) ;; 3494
+(unconnected-sides ex-cubes) ;; 64
+(unconnected-sides cubes) ;; 3494
 
-(defn insp [n] (pp/pprint n) n)
-
-(defn possible-air [[x y z]]
+(defn neighbors [[x y z]]
   [[(inc x) y z]
    [(dec x) y z]
    [x (inc y) z]
@@ -47,60 +43,25 @@
    [x y (inc z)]
    [x y (dec z)]])
 
-(defn internal-cubes [cubes]
-  (let [cube-set (set cubes)
-        cube-air (->> cube-set
-                      (reduce (fn [acc cube]
-                                (->> cube
-                                     possible-air
-                                     (reduce (fn [acc air] (update acc air #(if (nil? %1) 1 (inc %1)))) acc))) {})
-                      (filter (fn [[cube _]] (not (cube-set cube))))
-                      (into {}))
-        air-set (set (keys cube-air))]
-    (->> air-set
-         (r/reduce (fn [acc pos]
-                     (->> pos
-                          (possible-air)
-                          (reduce (fn [acc air-pos]
-                                    (if (air-set air-pos)
-                                      (update acc pos inc)
-                                      acc))
-                                  acc)))
-                   cube-air)
-         (r/filter (fn [[_ value]] (= value 6)))
-         (into {}))))
+(defn flood-fill [cubes]
+  (let [mmin (dec (apply min (flatten (vec cubes))))
+        mmax (inc (apply max (flatten (vec cubes))))]
+    (pp/pprint [mmin mmax])
+    (loop [queue [[mmin mmin mmin]]
+           flood #{}]
+      (if (not-empty queue)
+        (let [[hd & tl] queue
+              around (remove (set/union cubes flood) (neighbors hd))
+              inbounds (filter (fn [point] (every? #(>=  mmax %1  mmin) point)) around)]
+          (recur (apply conj tl inbounds) (conj flood hd)))
+        flood))))
 
-(internal-cubes lava-cubes)
+(defn exterior [cbs]
+  (->> (flood-fill cbs)
+       (mapcat neighbors)
+       (filter cbs)
+       (count)))
 
-
-(defn internal-cubes [cubes]
-  (let [cube-set (set cubes)
-        cube-air (->> cube-set
-                      (reduce (fn [acc cube]
-                                (->> cube
-                                     possible-air
-                                     (reduce (fn [acc air] (update acc air #(if (nil? %1) 1 (inc %1)))) acc))) {})
-                      (filter (fn [[cube _]] (not (cube-set cube))))
-                      (into {}))
-
-
-        air-set (set (keys cube-air))]
-
-(defn external-area [cubes]
-  (->> (internal-cubes cubes)
-       (* 6)
-       (- (unconnected-sides cubes))))
-
-;; Part 2
-(external-area ex-lava-cubes) ;; 58
-(unconnected-sides lava-cubes) ;; 3494
-
-;; 1598 WRONG TOO LOW
-;; 1616 WRONG TOO LOW
-;; 3181 TOO HIGH
-
-
-(- 3494 313)
-(- 3494 (* 6 313))
-
+(exterior ex-cubes) ;; 58
+(exterior cubes) ;; 2062
 

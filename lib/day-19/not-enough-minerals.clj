@@ -1,5 +1,6 @@
 (ns aoc22.day-19.not-enough-minerals
-  (:require [clojure.string :as s]))
+  (:require [clojure.string :as s]
+            [clojure.pprint :as pp]))
 
 (defonce ex-inp (slurp "lib/day-19/ex-inp.txt"))
 (defonce inp (slurp "lib/day-19/inp.txt"))
@@ -44,7 +45,7 @@
     (let [req-material-cost (robot-type blueprint)
           req-material-types (keys req-material-cost)]
       (if (every? #(>= (%1 materials) (%1 req-material-cost)) req-material-types)
-        [(inc time)
+        [(dec time)
          (update robots robot-type inc)
          (reduce (fn [acc itm]
                    (update acc itm #(- %1 (itm req-material-cost))))
@@ -57,22 +58,25 @@
  {:ore 2 :clay 0 :obisidian 0 :geode 0}
  (first ex-blueprints))
 
+(some identity [nil nil 1 nil])
+
 (defn next-possible-actions [time robots materials blueprint]
-  (->>  [[(inc time) robots materials]
-         ((robot-builder :ore-robot) time robots materials blueprint)
-         ((robot-builder :clay-robot) time robots materials blueprint)
-         ((robot-builder :obsidian-robot) time robots materials blueprint)
-         ((robot-builder :geode-robot) time robots materials blueprint)]
+  (->>  [[(dec time) robots materials]
+         (first (keep #((robot-builder %1) time robots materials blueprint)
+                      [:geode-robot
+                       :obsidian-robot
+                       :clay-robot
+                       :ore-robot]))]
         (keep not-empty)
         (into #{})))
 
 (defn best-order [blueprint]
-  (loop [info [[0 start-robots start-materials]]
+  (loop [info [[12 start-robots start-materials]]
          max-geode 0]
     (let [[[time robots materials] & tl] info]
       (cond (empty? info) max-geode
 
-            (>= time 24) (recur tl (max max-geode (:geode materials)))
+            (zero? time) (recur tl (max max-geode (:geode materials)))
 
             :else (let [nmaterials (round-robot-collect robots materials)
                         next-infos (next-possible-actions time robots nmaterials blueprint)]

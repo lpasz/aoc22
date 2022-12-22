@@ -50,12 +50,10 @@
             (= op '*) #((reverse-apply next) (/ %1 num))
             (= op '+) #((reverse-apply next) (- %1 num))
             (= op '-) #((reverse-apply next) (if v1n?
-                                            ;;    (+ num (- %1))
-                                               (+ %1 num)
+                                               (+ num (- %1))
                                                (+ %1 num)))
             (= op '/) #((reverse-apply next) (if v1n?
-                                            ;;    (/ num %1)
-                                               (+ %1 num)
+                                               (/ num %1)
                                                (* %1 num)))
             :else #(+ 0 %1)))))
 
@@ -68,7 +66,8 @@
   (let [up-map (ex2-monkey-update mps)]
     (->> (find-recur-monkey-math (:root up-map) up-map)
          (half-eval)
-         (reverse-apply))))
+         (reverse-apply)
+         )))
 
 
 (defn ex1 [mps]

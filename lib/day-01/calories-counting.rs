@@ -15,6 +15,9 @@ fn main() {
     parsed_data.sort();
     parsed_data.reverse();
 
-    println!("{:?}", parsed_data[0]);
-    println!("{:?}", parsed_data[0] + parsed_data[1] + parsed_data[2]);
+    let part1 = parsed_data[0];
+    let part2 = parsed_data[0] + parsed_data[1] + parsed_data[2];
+
+    println!("{:?} - Part 1", part1);
+    println!("{:?} - Part 2", part2);
 }

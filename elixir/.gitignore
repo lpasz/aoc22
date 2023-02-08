@@ -18,7 +18,10 @@ pom.xml.asc
 src/advent-of-code-2020/day-04/passport-processing.clj
 .clj-kondo/
 .cpcache/
-
+*.clj
+*.py
+*.txt
+*.rs
 /.elixir_ls/
 
 # The directory Mix will write compiled artifacts to.

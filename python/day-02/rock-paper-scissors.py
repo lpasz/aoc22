@@ -24,7 +24,7 @@ def play_to_achive_result(expected_result, adv_play):
 
 
 if __name__ == '__main__':
-    inp = open('./lib/day-02/inp.txt').read()
+    inp = open('./../inputs/day-02/inp.txt').read()
     lines = inp.split("\n")
     exp1 = 0
     exp2 = 0

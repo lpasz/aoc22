@@ -1,7 +1,7 @@
 (ns aoc22.day-02.rock-paper-scissors-small
   (:require [clojure.string :as s]))
 
-(def inp (slurp "lib/day-02/inp.txt"))
+(def inp (slurp "../inputs/day-02/inp.txt"))
 
 (def ex1-points {"A X" 4 "A Y" 8 "A Z" 3
                  "B X" 1 "B Y" 5 "B Z" 9

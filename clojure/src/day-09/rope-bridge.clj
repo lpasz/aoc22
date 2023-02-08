@@ -1,7 +1,7 @@
 (ns aoc22.day-09.rope-bridge
   (:require [clojure.string :as s]))
 
-(def inp (slurp "lib/day-09/inp.txt"))
+(def inp (slurp "../inputs/day-09/inp.txt"))
 
 (defn move-tail [[hx hy] [tx ty]]
   (let [diff [(- hx tx) (- hy ty)]

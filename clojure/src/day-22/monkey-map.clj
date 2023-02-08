@@ -3,7 +3,7 @@
             [clojure.pprint :as pp]))
 
 (def ex-inp (slurp "lib/day-22/ex-inp.txt"))
-(def inp (slurp "lib/day-22/inp.txt"))
+(def inp (slurp "../inputs/day-22/inp.txt"))
 
 (defn y-boundaries [mmap]
   (->> (group-by ffirst mmap)

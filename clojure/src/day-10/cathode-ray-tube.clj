@@ -1,7 +1,7 @@
 (ns aoc22.day-10.cathode-ray-tube
   (:require [clojure.string :as s]))
 
-(def inp (slurp "lib/day-10/inp.txt"))
+(def inp (slurp "../inputs/day-10/inp.txt"))
 (def ex-inp (slurp "lib/day-10/ex-inp.txt"))
 
 (defn to-instruction [line]

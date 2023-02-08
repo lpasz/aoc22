@@ -2,7 +2,7 @@
   (:require [clojure.string :as s]))
 
 (def ex-inp (slurp "lib/day-21/ex-inp.txt"))
-(def inp (slurp "lib/day-21/inp.txt"))
+(def inp (slurp "../inputs/day-21/inp.txt"))
 
 (defn parse [text]
   (->> (s/split-lines text)

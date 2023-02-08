@@ -1,7 +1,7 @@
 (ns aoc22.day-15.beacon-exclusion-zone
   (:require [clojure.string :as s]))
 
-(def inp (slurp "lib/day-15/inp.txt"))
+(def inp (slurp "../inputs/day-15/inp.txt"))
 (def ex-inp (slurp "lib/day-15/ex-inp.txt"))
 
 (defn parse-inp [text]

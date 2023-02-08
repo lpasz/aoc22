@@ -2,7 +2,7 @@
   (:require [clojure.string :as s]))
 
 (def ex-inp "30373\n25512\n65332\n33549\n35390")
-(def inp (slurp "lib/day-08/inp.txt"))
+(def inp (slurp "../inputs/day-08/inp.txt"))
 
 (defn tree-pos-and-height [lines]
   (->>  lines

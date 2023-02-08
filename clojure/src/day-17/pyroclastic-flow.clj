@@ -3,7 +3,7 @@
   (:use [clojure.pprint]))
 
 (def ex-inp (slurp "lib/day-17/ex-inp.txt"))
-(def inp (slurp "lib/day-17/inp.txt"))
+(def inp (slurp "../inputs/day-17/inp.txt"))
 
 (def ex-winds (cycle (keep #{\> \<} (seq ex-inp))))
 (def winds (cycle (keep #{\> \<} (seq inp))))

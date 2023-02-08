@@ -1,5 +1,5 @@
 defmodule CaloriesCounting do
-  @inp File.read!("./lib/day-01/inp.txt")
+  @inp File.read!("./../inputs/day-01/inp.txt")
 
   def max_elf_cal(), do: @inp |> elfs_calories() |> Enum.max()
 

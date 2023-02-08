@@ -2,7 +2,7 @@
   (:require [clojure.string :as s]
             [clojure.core.reducers :as r]))
 
-(def inp (slurp "lib/day-16/inp.txt"))
+(def inp (slurp "../inputs/day-16/inp.txt"))
 (def ex-inp (slurp "lib/day-16/ex-inp.txt"))
 
 (defn parse-inp [text]

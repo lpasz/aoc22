@@ -21,7 +21,7 @@ defmodule CampCleanup do
 end
 
 ex_inp = File.read!("./lib/day-04/ex-inp.txt")
-inp = File.read!("./lib/day-04/inp.txt")
+inp = File.read!("./../inputs/day-04/inp.txt")
 
 # 2
 ex_inp |> CampCleanup.ex1() |> IO.puts()

@@ -22,7 +22,7 @@ def ex1_and_ex2(text):
 
 if __name__ == '__main__':
     ex_inp = open('./lib/day-04/ex-inp.txt').read()
-    inp = open('./lib/day-04/inp.txt').read()
+    inp = open('./../inputs/day-04/inp.txt').read()
 
     print(ex1_and_ex2(ex_inp))  # (2, 4)
     print(ex1_and_ex2(inp))  # (595, 952)

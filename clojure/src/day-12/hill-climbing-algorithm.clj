@@ -2,7 +2,7 @@
   (:require [clojure.string :as s]
             [clojure.set :as set]))
 
-(def inp (slurp "lib/day-12/inp.txt"))
+(def inp (slurp "../inputs/day-12/inp.txt"))
 (def ex-inp (slurp "lib/day-12/ex-inp.txt"))
 
 (defn assoc-start-end [graph]

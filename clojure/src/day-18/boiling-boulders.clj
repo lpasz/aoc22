@@ -5,7 +5,7 @@
             [clojure.set :as set]))
 
 (def ex-inp (slurp "lib/day-18/ex-inp.txt"))
-(def inp (slurp "lib/day-18/inp.txt"))
+(def inp (slurp "../inputs/day-18/inp.txt"))
 
 (defn parse-inp [text]
   (->> (s/split-lines text)

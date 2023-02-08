@@ -35,7 +35,7 @@ defmodule RucksackReorganizations do
 end
 
 ex_inp = File.read!("./lib/day-03/ex-inp.txt")
-inp = File.read!("./lib/day-03/inp.txt")
+inp = File.read!("./../inputs/day-03/inp.txt")
 
 ex_inp |> RucksackReorganizations.ex1() |> IO.puts()
 inp |> RucksackReorganizations.ex1() |> IO.puts()

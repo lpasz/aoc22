@@ -1,7 +1,7 @@
 (ns day-11.monkey-in-the-middle
   (:require [clojure.string :as s]))
 
-(def inp (slurp "lib/day-11/inp.txt"))
+(def inp (slurp "../inputs/day-11/inp.txt"))
 (def ex-inp (slurp "lib/day-11/ex-inp.txt"))
 
 (defn to-int [i] (Integer/parseInt i))

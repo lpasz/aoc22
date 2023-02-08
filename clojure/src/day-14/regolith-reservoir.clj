@@ -1,7 +1,7 @@
 (ns aoc22.day-14.regolith-reservoir
   (:require [clojure.string :as s]))
 
-(def inp (slurp "lib/day-14/inp.txt"))
+(def inp (slurp "../inputs/day-14/inp.txt"))
 (def ex-inp (slurp "lib/day-14/ex-inp.txt"))
 
 (defn rrange [r1 r2]

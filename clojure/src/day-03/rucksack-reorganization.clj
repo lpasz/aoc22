@@ -3,7 +3,7 @@
             [clojure.set :as set]))
 
 (def ex-inp (slurp "lib/day-03/ex-inp.txt"))
-(def inp (slurp "lib/day-03/inp.txt"))
+(def inp (slurp "../inputs/day-03/inp.txt"))
 
 (def priorities (into {} (mapcat (fn [i] [[(char (+ i (int \a))) (+ i 1)]
                                           [(char (+ i (int \A))) (+ i 27)]])

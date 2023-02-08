@@ -79,7 +79,7 @@ defmodule MonkeyInTheMiddle do
 end
 
 ex_inp = File.read!("./lib/day-11/ex-inp.txt")
-inp = File.read!("./lib/day-11/inp.txt")
+inp = File.read!("./../inputs/day-11/inp.txt")
 
 
 

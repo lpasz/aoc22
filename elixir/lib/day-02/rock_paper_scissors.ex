@@ -1,5 +1,5 @@
 defmodule RockPaperScissor do
-  @inp File.read!("./lib/day-02/inp.txt")
+  @inp File.read!("./../inputs/day-02/inp.txt")
 
   @ex1_encrypt %{
     "A" => :rock,

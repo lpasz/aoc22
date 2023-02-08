@@ -7,7 +7,7 @@
        (first)
        (+ n)))
 
-(def inp (slurp "lib/day-06/inp.txt"))
+(def inp (slurp "../inputs/day-06/inp.txt"))
 (defn ex1 [text] (first-distinct-seq 4 text))
 (defn ex2 [text] (first-distinct-seq 14 text))
 

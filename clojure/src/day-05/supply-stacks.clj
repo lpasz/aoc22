@@ -2,7 +2,7 @@
   (:require [clojure.string :as s]))
 
 (def ex-inp (slurp "lib/day-05/ex-inp.txt"))
-(def inp (slurp "lib/day-05/inp.txt"))
+(def inp (slurp "../inputs/day-05/inp.txt"))
 
 (defn transpose [matrix] (apply map vector matrix))
 

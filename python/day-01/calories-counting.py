@@ -1,4 +1,4 @@
-inp = open('./lib/day-01/inp.txt').read()
+inp = open('./../inputs/day-01/inp.txt').read()
 
 elves = inp.split("\n\n")
 

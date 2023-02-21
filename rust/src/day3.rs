@@ -37,23 +37,25 @@ pub fn part2(input: String) {
         .chain((b'A'..=b'Z').map(|i| (char::from(i), (i - 38).into())))
         .collect();
 
-    let sum: u32 = input
+    let mut sum: u32 = 0;
+
+    input
         .lines()
-        .map(|s| s.chars().collect::<HashSet<char>>())
-        .collect::<Vec<HashSet<char>>>()
+        .map(|s| s.chars().collect::<Vec<char>>())
+        .collect::<Vec<Vec<char>>>()
         .chunks(3)
-        .map(|vs| {
-            vs.to_owned()
-                .into_iter()
-                .reduce(|acc, e| acc.intersection(&e).cloned().collect::<HashSet<char>>())
-                .unwrap()
-                .iter()
-                .next()
-                .unwrap()
-                .clone()
-        })
-        .map(|c| az.get(&c).unwrap())
-        .sum();
+        .for_each(|vs| {
+            let xs = vs.get(0).unwrap();
+            let ys = vs.get(1).unwrap();
+            let zs = vs.get(2).unwrap();
+
+            for x in xs.iter() {
+                if ys.contains(x) && zs.contains(x) {
+                    sum += az.get(x).unwrap().clone();
+                    break;
+                }
+            }
+        });
 
     println!("Day 03 - Part 02 - {:?}", sum);
 }

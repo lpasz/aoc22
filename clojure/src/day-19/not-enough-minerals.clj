@@ -1,8 +1,9 @@
 (ns aoc22.day-19.not-enough-minerals
   (:require [clojure.string :as s]
-            [clojure.pprint :as pp]))
+            [clojure.pprint :refer [pprint]]))
 
-(defonce ex-inp (slurp "lib/day-19/ex-inp.txt"))
+
+(defonce ex-inp (slurp "../inputs/day-19/ex-inp.txt"))
 (defonce inp (slurp "../inputs/day-19/inp.txt"))
 
 (defn parse [text]
@@ -22,12 +23,12 @@
 
 (def robots-collect {:ore-robot :ore
                      :clay-robot :clay
-                     :obsidian-robot :obisidian
+                     :obisidian-robot :obisidian
                      :geode-robot :geode})
 
 (def start-robots {:ore-robot 1
                    :clay-robot 0
-                   :obsidian-robot 0
+                   :obisidian-robot 0
                    :geode-robot 0})
 
 (def start-materials {:ore 0
@@ -35,59 +36,90 @@
                       :obisidian 0
                       :geode 0})
 
-(defn round-robot-collect [curr-robots materials]
-  (reduce (fn [acc [robot count]]
-            (update acc (robot robots-collect) #(+ %1 count)))
-          materials curr-robots))
-
-(defn robot-builder [robot-type]
-  (fn [time robots materials blueprint]
-    (let [req-material-cost (robot-type blueprint)
-          req-material-types (keys req-material-cost)]
-      (if (every? #(>= (%1 materials) (%1 req-material-cost)) req-material-types)
-        [(dec time)
-         (update robots robot-type inc)
-         (reduce (fn [acc itm]
-                   (update acc itm #(- %1 (itm req-material-cost))))
-                 materials
-                 req-material-types)]))))
-
-((robot-builder :ore-robot)
- 1
- start-robots
- {:ore 2 :clay 0 :obisidian 0 :geode 0}
- (first ex-blueprints))
-
-(some identity [nil nil 1 nil])
-
-(defn next-possible-actions [time robots materials blueprint]
-  (->>  [[(dec time) robots materials]
-         (first (keep #((robot-builder %1) time robots materials blueprint)
-                      [:geode-robot
-                       :obsidian-robot
-                       :clay-robot
-                       :ore-robot]))]
-        (keep not-empty)
-        (into #{})))
-
-(defn best-order [blueprint]
-  (loop [info [[12 start-robots start-materials]]
-         max-geode 0]
-    (let [[[time robots materials] & tl] info]
-      (cond (empty? info) max-geode
-
-            (zero? time) (recur tl (max max-geode (:geode materials)))
-
-            :else (let [nmaterials (round-robot-collect robots materials)
-                        next-infos (next-possible-actions time robots nmaterials blueprint)]
-                    (recur (concat tl next-infos) max-geode))))))
+(def collect-materials (fn [curr-materials robots]
+  ;; (pprint [:collect-materials curr-materials robots])
+                         (reduce (fn [materials [robot n]]
+                                   (let [material (robots-collect robot)]
+                                     (update materials material + n)))
+                                 curr-materials
+                                 robots)))
 
 
-(best-order (first ex-blueprints))
+(def can-make-robot? (fn [robot blueprint available-mats]
+                       (if-let [req-mat (get blueprint robot)]
+                         (every? (fn [[mat n]]
+                                   (let [available (get available-mats mat 0)]
+                ;; (pprint [robot available n mat])
+                                     (>= available n)))
+                                 req-mat)
+                         false)))
 
-(:geode-robot (first ex-blueprints))
-;; 7 turn with 1 ob + 2 turn 1 ore
+(can-make-robot? :obisidian-robot (first ex-blueprints) {:ore 4, :clay 17, :obisidian 0, :geode 0})
+
+(def build-robot (fn [robot mat blueprint]
+                   (let [cost (get blueprint robot)]
+                     (reduce (fn [materials [mat n]]
+                               (update materials mat - n))
+                             mat
+                             cost))))
 
 
 
+(def build-robots (fn [mat robots blueprint]
+                    (->> [:geode-robot :obisidian-robot :clay-robot :ore-robot]
+                         (filter #(can-make-robot? % blueprint mat))
+                         (map (fn [robot]
+                                (let [nmat (build-robot robot mat blueprint)
+                                      nrobots (update robots robot inc)]
+                                  [(collect-materials nmat robots) nrobots])))
+                         (concat [[(collect-materials mat robots) robots]]))))
 
+(defn heuristics [[mat robots] n]
+  (+ (* (:geode mat) 1000)
+     (* (:obisidian mat) 15)
+     (* (:clay mat) 1)
+     (* (:ore mat) 1)
+     (* (:geode-robot robots) 1000 (- 32 n))
+     (* (:obisidian-robot robots)  15 (- 32 n))
+     (* (:clay-robot robots) 1 (- 32 n))
+     (* (:ore-robot robots) 1 (- 32 n))))
+
+(defn make-with-blueprint [blueprint q t]
+  (let [num q
+        blueprint blueprint
+        self (atom {0 #{[start-materials start-robots]}})]
+    (dotimes [n num]
+      (let [next (inc n)]
+        (doseq [curr-self (get @self n)]
+          (let [[pmat probot] curr-self
+                robots (build-robots pmat probot blueprint)]
+            (swap! self (fn [self]
+                          (update self next
+                                  (fn [next]
+                                    (->> next
+                                         (concat robots)
+                                         (set)
+                                         (sort-by #(heuristics % n) >)
+                                         (take t)))))))))
+
+      (swap! self #(dissoc % n)))
+    (get @self num)))
+
+
+
+(defn max-geodes [blueprint n t]
+  (reduce #(max %1 ((comp :geode first) %2))
+          0
+          (make-with-blueprint blueprint n t)))
+
+
+(defn make-blueprints [blueprints n t]
+  (reduce #(+ %1 (* (:number %2) (max-geodes %2 n t))) 0 blueprints))
+
+
+(make-blueprints ex-blueprints 24 500) ;; 33
+(make-blueprints blueprints 24 500) ;; 1346
+
+
+(map #(max-geodes %1 32 100) ex-blueprints)
+(apply * (map #(max-geodes %1 32 100) (take 3 blueprints))) ;; 7644

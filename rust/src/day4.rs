@@ -1,21 +1,29 @@
 use std::collections::HashSet;
 use std::fs;
+use std::time::SystemTime;
 
 pub fn main() {
     let input = fs::read_to_string("../inputs/day-04/inp.txt").expect("file to exist");
-    part1(input.clone());
-    part2(input);
+
+    for n in 1..100 {
+        let start = SystemTime::now();
+        part1(input.clone());
+        part2(input.clone());
+        let end = SystemTime::now();
+        let duration = end.duration_since(start).unwrap();
+        println!("{:?}", duration);
+    }
 }
 
 pub fn part1(input: String) {
     let input = range_intersect(input, |r1, r2| r1.is_subset(&r2) || r2.is_subset(&r1));
 
-    println!("Day 04 - Part 01 - {:?}", input);
+    // println!("Day 04 - Part 01 - {:?}", input);
 }
 
 pub fn part2(input: String) {
     let input = range_intersect(input, |r1, r2| !r1.is_disjoint(&r2));
-    println!("Day 04 - Part 02 - {:?}", input);
+    // println!("Day 04 - Part 02 - {:?}", input);
 }
 
 type P<T> = fn(HashSet<T>, HashSet<T>) -> bool;

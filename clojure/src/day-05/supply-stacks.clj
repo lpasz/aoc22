@@ -1,7 +1,7 @@
 (ns aoc22.day-05.supply-stacks
   (:require [clojure.string :as s]))
 
-(def ex-inp (slurp "lib/day-05/ex-inp.txt"))
+(def ex-inp (slurp "../inputs/day-05/ex-inp.txt"))
 (def inp (slurp "../inputs/day-05/inp.txt"))
 
 (defn transpose [matrix] (apply map vector matrix))
@@ -49,6 +49,6 @@
 (defn ex2 [text] (calc text take))
 
 (ex1 ex-inp) ;; "CMZ"
-(ex1 inp) ;; "PSNRGBTFT"
+(time (ex1 inp)) ;; "PSNRGBTFT"
 (ex2 ex-inp) ;; "MCD"
-(ex2 inp) ;; "BNTZFPMMW"
+(time (ex2 inp)) ;; "BNTZFPMMW"

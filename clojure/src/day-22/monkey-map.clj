@@ -2,17 +2,43 @@
   (:require [clojure.string :as s]
             [clojure.pprint :as pp]))
 
-(def ex-inp (slurp "lib/day-22/ex-inp.txt"))
+(def ex-inp (slurp "../inputs/day-22/ex-inp.txt"))
 (def inp (slurp "../inputs/day-22/inp.txt"))
 
+
 (defn y-boundaries [mmap]
-  (->> (group-by ffirst mmap)
+  (->> (group-by first mmap)
        (map (fn [[x vals]]
-              (let [ys (map #(second (first %1)) vals)
+              (let [ys (map #(second %1) vals)
                     mx (apply max ys)
                     mn (apply min ys)]
                 [[x :warp] [mx mn]])))
        (into {})))
+
+
+(defn side [[x y]]
+  (->> {:side-1 [[51 100] [1 50]]
+        :side-2 [[101 150] [1 50]]
+        :side-3 [[51 100] [51 100]]
+        :side-4 [[1 50] [101 150]]
+        :side-5 [[51 100] [101 150]]
+        :side-6 [[1 50] [151 200]]}
+       (filter (fn [[_ [[x1 x2] [y1 y2]]]]
+                 (and (<= x1 x x2)
+                      (<= y1 y y2))))
+       (ffirst)))
+
+
+
+(into {}  (map (fn [[k v]] [k (map (fn [[x y]] [(rem x 51) (rem y 51)]) v)]) (group-by side (keys mapy))))
+
+
+
+(defn add-side [coll]
+  (map #(vec (cons (side  %1) %1)) (keys coll)))
+
+(add-side mapy)
+
 
 (defn x-boundaries [mmap]
   (->> (group-by #(second (first %1)) mmap)
@@ -74,6 +100,44 @@
     [(warp-x curr-pos xb) y]
     [x (warp-y curr-pos yb)]))
 
+(def side-cubes {:side-1 {:up [:side-6 :left :normal]
+                          :down [:side-3 :up :normal]
+                          :left [:side-5 :left :reverse]
+                          :right [:side-2 :left :normal]}
+                 :side-2 {:up [:side-6 :down :normal]
+                          :down [:side-3 :right :normal]
+                          :left  [:side-1 :right :normal]
+                          :right [:side-4 :left :reverse]}
+                 :side-3 {:up [:side-1 :down :normal]
+                          :down [:side-4 :up :normal]
+                          :left [:side-5 :up :normal]
+                          :right [:side-2 :down :normal]}
+                 :side-4 {:up [:side-3 :down :normal]
+                          :down [:side-6 :left :normal]
+                          :left [:side-5 :right :normal]
+                          :right [:side-2 :right :reverse]}
+                 :side-5 {:up [:side-3 :left :normal]
+                          :down [:side-6 :up :normal]
+                          :right [:side-4 :left :normal]
+                          :left [:side-1 :left :reverse]}
+                 :side-6 {:up [:side-5 :down :normal]
+                          :down [:side-2 :up :normal]
+                          :left [:side-1 :up :normal]
+                          :right [:side-4 :down :normal]}})
+
+
+(defn warp-to-cube [[x y :as curr-pos] dir borders]
+  (let [n  (rem (if (#{:left :right} dir) y x) 51)
+        nr (abs (- n 51))
+        side (side curr-pos)
+        [side-to dir sentido] (get-in side-cubes [side dir])]
+    (pp/pprint [n nr side side-to dir sentido])
+    (get-in borders [side-to dir (if (= sentido :reverse) nr n)])))
+
+(warp-to-cube [51 1] :left s)
+
+(rem 51 50)
+
 (defn walk-dir [curr-pos steps dir mmap xb yb]
   (if (#{\R \L} steps)
     [curr-pos (shift [dir steps])]
@@ -82,7 +146,7 @@
            dir dir]
       (let [next-pos (walk curr-pos dir)
             next-block (mmap next-pos)
-            blocked? (= \# next-block) 
+            blocked? (= \# next-block)
             warp? (= nil next-block)
             warp-to (warp-to curr-pos dir xb yb)
             warp-to-block (mmap warp-to)
@@ -129,6 +193,34 @@
 
 
 (parse ex-inp)
+(parse inp)
+
+
+
+
+(def sides {:side-1 [[51 100] [1 50]]
+            :side-2 [[101 150] [1 50]]
+            :side-3 [[51 100] [51 100]]
+            :side-5 [[1 50] [101 150]]
+            :side-4 [[51 100] [101 150]]
+            :side-6 [[1 50] [151 200]]})
+
+
+(defn border [v]
+  (let [[x1 x2] (first v)
+        [y1 y2] (second v)]
+    {:up (into {} (map-indexed (fn [idx x]    [(inc idx) [x y1]]) (range x1 (inc x2))))
+     :down (into {}  (map-indexed (fn [idx x] [(inc idx) [x y2]]) (range x1 (inc x2))))
+     :left (into {}  (map-indexed (fn [idx y] [(inc idx) [x1 y]]) (range y1 (inc y2))))
+     :right (into {} (map-indexed (fn [idx y] [(inc idx) [x2 y]]) (range y1 (inc y2))))}))
+
+
+
+(def s (into {} (map (fn [[k v]] [ k (border v)]) sides)))
+
+(:side-5 s)
+
+(def borders {:side-1})
 
 (ex1 ex-inp [9 1]) ;; 6032
 (ex1 inp [51 1])

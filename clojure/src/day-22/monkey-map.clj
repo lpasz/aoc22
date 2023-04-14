@@ -29,15 +29,8 @@
        (ffirst)))
 
 
-
-(into {}  (map (fn [[k v]] [k (map (fn [[x y]] [(rem x 51) (rem y 51)]) v)]) (group-by side (keys mapy))))
-
-
-
 (defn add-side [coll]
   (map #(vec (cons (side  %1) %1)) (keys coll)))
-
-(add-side mapy)
 
 
 (defn x-boundaries [mmap]
@@ -100,45 +93,58 @@
     [(warp-x curr-pos xb) y]
     [x (warp-y curr-pos yb)]))
 
-(def side-cubes {:side-1 {:up [:side-6 :left :normal]
-                          :down [:side-3 :up :normal]
-                          :left [:side-5 :left :reverse]
-                          :right [:side-2 :left :normal]}
-                 :side-2 {:up [:side-6 :down :normal]
-                          :down [:side-3 :right :normal]
-                          :left  [:side-1 :right :normal]
-                          :right [:side-4 :left :reverse]}
-                 :side-3 {:up [:side-1 :down :normal]
-                          :down [:side-4 :up :normal]
-                          :left [:side-5 :up :normal]
-                          :right [:side-2 :down :normal]}
-                 :side-4 {:up [:side-3 :down :normal]
-                          :down [:side-6 :left :normal]
-                          :left [:side-5 :right :normal]
-                          :right [:side-2 :right :reverse]}
-                 :side-5 {:up [:side-3 :left :normal]
-                          :down [:side-6 :up :normal]
-                          :right [:side-4 :left :normal]
-                          :left [:side-1 :left :reverse]}
-                 :side-6 {:up [:side-5 :down :normal]
-                          :down [:side-2 :up :normal]
-                          :left [:side-1 :up :normal]
-                          :right [:side-4 :down :normal]}})
+(def sides {:side-1 [[51 100] [1 50]]
+            :side-2 [[101 150] [1 50]]
+            :side-3 [[51 100] [51 100]]
+            :side-5 [[1 50] [101 150]]
+            :side-4 [[51 100] [101 150]]
+            :side-6 [[1 50] [151 200]]})
 
+(def side-cubes {:side-1 {:up [:side-6 :left :right :normal]
+                          :down [:side-3 :up :down :normal]
+                          :left [:side-5 :left :right :reverse]
+                          :right [:side-2 :left :right :normal]}
+                 :side-2 {:up [:side-6 :down :up :normal]
+                          :down [:side-3 :right :left :normal]
+                          :left  [:side-1 :right :left :normal]
+                          :right [:side-4 :left :left :reverse]}
+                 :side-3 {:up [:side-1 :down :up :normal]
+                          :down [:side-4 :up :down :normal]
+                          :left [:side-5 :up :down :normal]
+                          :right [:side-2 :down :up :normal]}
+                 :side-4 {:up [:side-3 :down :up :normal]
+                          :down [:side-6 :left :left :normal]
+                          :left [:side-5 :right :left :normal]
+                          :right [:side-2 :right :left :reverse]}
+                 :side-5 {:up [:side-3 :left :right :normal]
+                          :down [:side-6 :up :down :normal]
+                          :right [:side-4 :left :right :normal]
+                          :left [:side-1 :left :right :reverse]}
+                 :side-6 {:up [:side-5 :down :up :normal]
+                          :down [:side-2 :up :down :normal]
+                          :left [:side-1 :up :down :normal]
+                          :right [:side-4 :down :up :normal]}})
+
+(def rev {:up :down
+          :down :up
+          :left :right
+          :right :left})
 
 (defn warp-to-cube [[x y :as curr-pos] dir borders]
-  (let [n  (rem (if (#{:left :right} dir) y x) 51)
+  (let [n  (rem (if (#{:left :right} dir) y x) 50)
         nr (abs (- n 51))
         side (side curr-pos)
-        [side-to dir sentido] (get-in side-cubes [side dir])]
-    (pp/pprint [n nr side side-to dir sentido])
-    (get-in borders [side-to dir (if (= sentido :reverse) nr n)])))
+        [side-to dir ndir sentido] (get-in side-cubes [side dir])]
+    ;; (pp/pprint [curr-pos side side-to dir sentido])
+    [ndir (get-in borders [side-to dir (if (= sentido :reverse) nr n)])]))
 
 (warp-to-cube [51 1] :left s)
 
+
+
 (rem 51 50)
 
-(defn walk-dir [curr-pos steps dir mmap xb yb]
+(defn walk-dir [curr-pos steps dir mmap xb yb borders]
   (if (#{\R \L} steps)
     [curr-pos (shift [dir steps])]
     (loop [curr-pos curr-pos
@@ -148,31 +154,29 @@
             next-block (mmap next-pos)
             blocked? (= \# next-block)
             warp? (= nil next-block)
-            warp-to (warp-to curr-pos dir xb yb)
+            [wdir warp-to] (warp-to-cube curr-pos dir borders)
             warp-to-block (mmap warp-to)
             warp-blocked? (= \# warp-to-block)]
-        ;; (pp/pprint {:next-pos next-pos
-        ;;             :next-block next-block
-        ;;             :warp? warp?
-        ;;             :warp-to warp-to
-        ;;             :warp-to-block warp-to-block
-        ;;             :blocked? blocked?
-        ;;             :warp-blocked? warp-blocked?})
+        (pp/pprint {:next-pos next-pos
+                    :next-block next-block
+                    :blocked? blocked?})
+        (when (and warp? (some? warp-to-block)) (pp/pprint {:warp-to warp-to}))
         (cond
           (zero? steps) [curr-pos dir]
           (and (nil? next-block) warp-blocked?) [curr-pos dir]
           blocked? [curr-pos dir]
-          (and warp? (some? warp-to-block)) (recur warp-to (dec steps) dir)
+          (and warp? (some? warp-to-block)) (recur warp-to (dec steps) wdir)
           :else (recur next-pos (dec steps) dir))))))
 
-(defn walk-the-line [curr-pos direction dirs mmap xb yb]
+(defn walk-the-line [curr-pos direction dirs mmap xb yb borders]
   (loop [curr-pos curr-pos
          direction direction
          dirs dirs]
+    ;; (pp/pprint [curr-pos direction])
     (if (empty? dirs)
       [curr-pos direction]
       (let [[steps & dirs] dirs
-            [next-pos direction] (walk-dir curr-pos steps direction mmap xb yb)]
+            [next-pos direction] (walk-dir curr-pos steps direction mmap xb yb borders)]
         (recur next-pos direction dirs)))))
 
 (def dir-points {:right 0
@@ -191,11 +195,21 @@
     (pp/pprint [col row])
     (+ (* 1000 row) (* 4 col) (dir-points direction))))
 
+(defn ex2 [text start borders]
+  (let [[dirs mmap xb yb] (parse text)
+        [[col row] direction] (walk-the-line start
+                                             :right
+                                             dirs
+                                             mmap
+                                             xb
+                                             yb
+                                             borders)]
+    (pp/pprint [col row])
+    (+ (* 1000 row) (* 4 col) (dir-points direction))))
+
 
 (parse ex-inp)
 (parse inp)
-
-
 
 
 (def sides {:side-1 [[51 100] [1 50]]
@@ -204,6 +218,13 @@
             :side-5 [[1 50] [101 150]]
             :side-4 [[51 100] [101 150]]
             :side-6 [[1 50] [151 200]]})
+
+(def ex-sides {:side-1 [[9 12] [1 4]]
+               :side-2 [[1 4] [5 8]]
+               :side-3 [[5 8] [5 8]]
+               :side-5 [[9 12] [5 8]]
+               :side-4 [[9 12] [9 12]]
+               :side-6 [[9  12] [13 15]]})
 
 
 (defn border [v]
@@ -216,12 +237,11 @@
 
 
 
-(def s (into {} (map (fn [[k v]] [ k (border v)]) sides)))
+(def s (into {} (map (fn [[k v]] [k (border v)]) sides)))
 
-(:side-5 s)
+;; (ex1 ex-inp [9 1]) ;; 6032
 
-(def borders {:side-1})
-
-(ex1 ex-inp [9 1]) ;; 6032
-(ex1 inp [51 1])
+;too high 109046
+;; too high 150158
+(ex2 inp [51 1] s)
 

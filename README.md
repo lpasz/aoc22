@@ -3,3 +3,4 @@ Solving Advent of Code in some languages like:
 * Clojure 
 * Elixir 
 * Python
+* Rust

@@ -28,7 +28,6 @@
                       (<= y1 y y2))))
        (ffirst)))
 
-
 (defn add-side [coll]
   (map #(vec (cons (side  %1) %1)) (keys coll)))
 
@@ -93,60 +92,68 @@
     [(warp-x curr-pos xb) y]
     [x (warp-y curr-pos yb)]))
 
-(def sides {:side-1 [[51 100] [1 50]]
-            :side-2 [[101 150] [1 50]]
+(def sides {:side-4 [[1 50] [101 150]]
+            :side-6 [[1 50] [151 200]]
+            :side-1 [[51 100] [1 50]]
             :side-3 [[51 100] [51 100]]
-            :side-5 [[1 50] [101 150]]
-            :side-4 [[51 100] [101 150]]
-            :side-6 [[1 50] [151 200]]})
+            :side-5 [[51 100] [101 150]]
+            :side-2 [[101 150] [1 50]]})
 
-(def side-cubes {:side-1 {:up [:side-6 :left :right :normal]
-                          :down [:side-3 :up :down :normal]
-                          :left [:side-5 :left :right :reverse]
-                          :right [:side-2 :left :right :normal]}
-                 :side-2 {:up [:side-6 :down :up :normal]
-                          :down [:side-3 :right :left :normal]
-                          :left  [:side-1 :right :left :normal]
-                          :right [:side-4 :left :left :reverse]}
-                 :side-3 {:up [:side-1 :down :up :normal]
-                          :down [:side-4 :up :down :normal]
-                          :left [:side-5 :up :down :normal]
-                          :right [:side-2 :down :up :normal]}
-                 :side-4 {:up [:side-3 :down :up :normal]
-                          :down [:side-6 :left :left :normal]
-                          :left [:side-5 :right :left :normal]
-                          :right [:side-2 :right :left :reverse]}
-                 :side-5 {:up [:side-3 :left :right :normal]
-                          :down [:side-6 :up :down :normal]
-                          :right [:side-4 :left :right :normal]
-                          :left [:side-1 :left :right :reverse]}
-                 :side-6 {:up [:side-5 :down :up :normal]
-                          :down [:side-2 :up :down :normal]
-                          :left [:side-1 :up :down :normal]
-                          :right [:side-4 :down :up :normal]}})
+(def side-cubes {:side-1 {:up {:warp :side-6 :on :left :headed :right :reverse false}
+                          :down {:warp :side-3 :on :up :headed :down :reverse false}
+                          :left {:warp :side-4 :on :left :headed :right :reverse true}
+                          :right {:warp :side-2 :on :left :headed :right :reverse false}}
+                 :side-2 {:up {:warp :side-6 :on :down :headed :up :reverse false}
+                          :down {:warp :side-3 :on :right :headed :left :reverse false}
+                          :left {:warp :side-1 :on :right :headed :left :reverse false}
+                          :right {:warp :side-5 :on :right :headed :left :reverse true}}
+                 :side-3 {:up {:warp :side-1 :on :down :headed :up :reverse false}
+                          :down {:warp :side-5 :on :up :headed :down :reverse false}
+                          :left {:warp :side-4 :on :up :headed :down :reverse false}
+                          :right {:warp :side-2 :on :down :headed :up :reverse false}}
+                 :side-4 {:up {:warp :side-3 :on :left :headed :right :reverse false}
+                          :down {:warp :side-6 :on :up :headed :down :reverse false}
+                          :left {:warp :side-1 :on :left :headed :right :reverse true}
+                          :right {:warp :side-5 :on :left :headed :right :reverse false}}
+                 :side-5 {:up {:warp :side-3 :on :down :headed :up :reverse false}
+                          :down {:warp :side-6 :on :right :headed :left :reverse false}
+                          :left {:warp :side-4 :on :right :headed :left :reverse false}
+                          :right {:warp :side-2 :on :right :headed :left :reverse true}}
+                 :side-6 {:up {:warp :side-4 :on :down :headed :up :reverse false}
+                          :down {:warp :side-2 :on :up :headed :down :reverse false}
+                          :left {:warp :side-1 :on :up :headed :down :reverse false}
+                          :right {:warp :side-5 :on :down :headed :up :reverse false}}})
 
-(def rev {:up :down
-          :down :up
-          :left :right
-          :right :left})
+(def rev (zipmap (range 1 51) (range 50 0 -1)))
+
+(defn downsize [n]
+  (cond (<= n 50) n
+        (<= n 100) (- n 50)
+        (<= n 150) (- n 100)
+        (<= n 200) (- n 150)))
 
 (defn warp-to-cube [[x y :as curr-pos] dir borders]
-  (let [n  (rem (if (#{:left :right} dir) y x) 50)
-        nr (abs (- n 51))
-        side (side curr-pos)
-        [side-to dir ndir sentido] (get-in side-cubes [side dir])]
-    ;; (pp/pprint [curr-pos side side-to dir sentido])
-    [ndir (get-in borders [side-to dir (if (= sentido :reverse) nr n)])]))
+  (let [side (side curr-pos)
+        ;;_ (pp/pprint {:side side})
+        {:keys [warp on headed reverse] :as map} (get-in side-cubes [side dir])
+        ;;_ (pp/pprint {:map map})
+        equivalent-position (downsize (if (#{:left :right} dir) y x))
+        equivalent-position (if reverse (rev equivalent-position) equivalent-position)
+        ;;_ (pp/pprint {:equivalent-position equivalent-position})
+        ]
+    [headed (get-in borders [warp on equivalent-position])]))
 
-(warp-to-cube [51 1] :left s)
+(comment
+  (side [51 100])
+  (warp-to-cube [51 100] :left faces-borders)
 
+  (side [50 200])
 
+  (rem 51 50))
 
-(rem 51 50)
-
-(defn walk-dir [curr-pos steps dir mmap xb yb borders]
+(defn walk-dir [curr-pos steps dir mmap xb yb borders cube?]
   (if (#{\R \L} steps)
-    [curr-pos (shift [dir steps])]
+        [curr-pos (shift [dir steps])]
     (loop [curr-pos curr-pos
            steps steps
            dir dir]
@@ -154,29 +161,28 @@
             next-block (mmap next-pos)
             blocked? (= \# next-block)
             warp? (= nil next-block)
-            [wdir warp-to] (warp-to-cube curr-pos dir borders)
-            warp-to-block (mmap warp-to)
+            [wcdir warp-cube-to] (if cube? (warp-to-cube curr-pos dir borders) [])
+            warp-border-to (warp-to curr-pos dir xb yb)
+            warp-to-block (mmap warp-cube-to)
             warp-blocked? (= \# warp-to-block)]
-        (pp/pprint {:next-pos next-pos
-                    :next-block next-block
-                    :blocked? blocked?})
-        (when (and warp? (some? warp-to-block)) (pp/pprint {:warp-to warp-to}))
         (cond
           (zero? steps) [curr-pos dir]
           (and (nil? next-block) warp-blocked?) [curr-pos dir]
           blocked? [curr-pos dir]
-          (and warp? (some? warp-to-block)) (recur warp-to (dec steps) wdir)
+          (and (some? next-pos) blocked?) (recur next-pos (dec steps) dir)
+          (and (not cube?) warp? (some? warp-to-block)) (recur warp-border-to (dec steps) dir)
+          (and cube? warp? (some? warp-to-block)) (recur warp-cube-to (dec steps) wcdir)
           :else (recur next-pos (dec steps) dir))))))
 
-(defn walk-the-line [curr-pos direction dirs mmap xb yb borders]
+(defn walk-the-line [curr-pos direction dirs mmap xb yb borders cube?]
   (loop [curr-pos curr-pos
          direction direction
          dirs dirs]
-    ;; (pp/pprint [curr-pos direction])
+;;    (pp/pprint [:next-step curr-pos direction])
     (if (empty? dirs)
       [curr-pos direction]
       (let [[steps & dirs] dirs
-            [next-pos direction] (walk-dir curr-pos steps direction mmap xb yb borders)]
+            [next-pos direction] (walk-dir curr-pos steps direction mmap xb yb borders cube?)]
         (recur next-pos direction dirs)))))
 
 (def dir-points {:right 0
@@ -191,8 +197,9 @@
                                              dirs
                                              mmap
                                              xb
-                                             yb)]
-    (pp/pprint [col row])
+                                             yb
+                                             {}
+                                             false)]
     (+ (* 1000 row) (* 4 col) (dir-points direction))))
 
 (defn ex2 [text start borders]
@@ -203,45 +210,33 @@
                                              mmap
                                              xb
                                              yb
-                                             borders)]
-    (pp/pprint [col row])
+                                             borders
+                                             true)]
+;;    (pp/pprint [:final col row])
     (+ (* 1000 row) (* 4 col) (dir-points direction))))
 
 
 (parse ex-inp)
 (parse inp)
 
-
-(def sides {:side-1 [[51 100] [1 50]]
-            :side-2 [[101 150] [1 50]]
-            :side-3 [[51 100] [51 100]]
-            :side-5 [[1 50] [101 150]]
-            :side-4 [[51 100] [101 150]]
-            :side-6 [[1 50] [151 200]]})
-
-(def ex-sides {:side-1 [[9 12] [1 4]]
-               :side-2 [[1 4] [5 8]]
-               :side-3 [[5 8] [5 8]]
-               :side-5 [[9 12] [5 8]]
-               :side-4 [[9 12] [9 12]]
-               :side-6 [[9  12] [13 15]]})
-
-
 (defn border [v]
   (let [[x1 x2] (first v)
         [y1 y2] (second v)]
-    {:up (into {} (map-indexed (fn [idx x]    [(inc idx) [x y1]]) (range x1 (inc x2))))
-     :down (into {}  (map-indexed (fn [idx x] [(inc idx) [x y2]]) (range x1 (inc x2))))
-     :left (into {}  (map-indexed (fn [idx y] [(inc idx) [x1 y]]) (range y1 (inc y2))))
-     :right (into {} (map-indexed (fn [idx y] [(inc idx) [x2 y]]) (range y1 (inc y2))))}))
+    {:up (into (sorted-map) (map-indexed (fn [idx x]    [(inc idx) [x y1]]) (range x1 (inc x2))))
+     :down (into (sorted-map)  (map-indexed (fn [idx x] [(inc idx) [x y2]]) (range x1 (inc x2))))
+     :left (into (sorted-map)  (map-indexed (fn [idx y] [(inc idx) [x1 y]]) (range y1 (inc y2))))
+     :right (into (sorted-map) (map-indexed (fn [idx y] [(inc idx) [x2 y]]) (range y1 (inc y2))))}))
 
 
 
-(def s (into {} (map (fn [[k v]] [k (border v)]) sides)))
+(def faces-borders (into (sorted-map) (map (fn [[k v]] [k (border v)]) sides)))
 
+(:side-1 faces-borders)
+
+faces-borders
 ;; (ex1 ex-inp [9 1]) ;; 6032
 
-;too high 109046
-;; too high 150158
-(ex2 inp [51 1] s)
+(ex1 inp [51 1]) ;; 67390
+
+(ex2 inp [51 1] faces-borders) ;; 95291
 

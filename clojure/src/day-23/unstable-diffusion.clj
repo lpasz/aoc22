@@ -2,36 +2,7 @@
   (:require [clojure.string :as s]
             [clojure.pprint :as pp]))
 
-(defn draw-board [[inp order]]
-  (let [min-x (->> inp (map first) (apply min) dec)
-        max-x (->> inp (map first) (apply max) inc)
-        min-y (->> inp (map second) (apply min) dec)
-        max-y (->> inp (map second) (apply max) inc)]
-    (->> (range min-y (inc max-y))
-         (map (fn [y]
-                (->> (range min-x (inc max-x))
-                     (map (fn [x]
-                            (if (get inp [x y])
-                              \#
-                              \.)))
-                     (apply str))))
-         (map println)
-         (doall))
-    (println)
-    [inp order]))
-
-(defn insp [n]
-  (pp/pprint n)
-  n)
-
-(def mini-ex-inp (str ".....\n"
-                      "..##.\n"
-                      "..#..\n"
-                      ".....\n"
-                      "..##.\n"
-                      "....."))
-
-(def ex-inp (slurp "../inputs/day-23/ex-inp.txt"))
+(def ex-txt (slurp "../inputs/day-23/ex-inp.txt"))
 (def inp-txt (slurp "../inputs/day-23/inp.txt"))
 
 (def order '(:n :s :w :e))
@@ -47,18 +18,12 @@
        (map first)
        (set)))
 
-(def mini (parse mini-ex-inp))
-(def ex (parse ex-inp))
+(def ex-inp (parse ex-txt))
 (def inp (parse inp-txt))
 
-(def surrounding {:n [0 -1]
-                  :ne [+1 -1]
-                  :e [+1 0]
-                  :se [+1 +1]
-                  :s [0 +1]
-                  :sw [-1 +1]
-                  :w [-1 0]
-                  :nw [-1 -1]})
+(def surrounding {:nw [-1 -1] :n [0 -1] :ne [+1 -1]
+                   :w [-1 0]            :e  [+1 0]
+                  :se [+1 +1] :s [0 +1] :sw [-1 +1]})
 
 (defn go-to [[x y] dir]
   (let [[dx dy] (get surrounding dir)]
@@ -122,14 +87,25 @@
         max-y (->> inp (map second) (apply max))]
     (->> (range min-y (inc max-y))
          (mapcat (fn [y]
-                 (->> (range min-x (inc max-x))
-                      (keep (fn [x] (when (nil? (get inp [x y])) :empty))))))
+                   (->> (range min-x (inc max-x))
+                        (keep (fn [x] (when (nil? (get inp [x y])) :empty))))))
          (count))))
 
 (defn do-n-moves [[inp n-m]]
   (reduce (fn [acc _] (move acc)) [inp n-m] (range 10)))
 
+(defn do-until-no-moves [[inp order]]
+  (loop [curr inp
+         order order
+         count 1]
+    (let [[new order] (move [curr order])]
+      (if (= new curr)
+        count
+        (recur new order (inc count))))))
+
 (->> [inp order]
      do-n-moves
      calc-board-empty-squares)
+
+(time (do-until-no-moves [inp order]))
 

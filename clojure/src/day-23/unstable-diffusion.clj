@@ -2,6 +2,8 @@
   (:require [clojure.string :as s]
             [clojure.pprint :as pp]))
 
+
+
 (def ex-txt (slurp "../inputs/day-23/ex-inp.txt"))
 (def inp-txt (slurp "../inputs/day-23/inp.txt"))
 
